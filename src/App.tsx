@@ -44,24 +44,37 @@ export default function App() {
   const onSubmit = async (data: LeadFormValues) => {
     setIsSubmitting(true);
     setSubmitStatus("idle");
+
+    const waUrl = `https://wa.me/5519982347653?text=${encodeURIComponent('Olá, gostaria de saber mais sobre o terreno.')}`;
+    
+    // Tenta abrir o WhatsApp em uma nova aba instantaneamente (evita bloqueadores de pop-up e erros de iframe)
+    const newWindow = window.open(waUrl, "_blank", "noopener,noreferrer");
+
     try {
       const response = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        keepalive: true, // Garante que a requisição termine mesmo se a página fechar
       });
 
       if (response.ok) {
-        setSubmitStatus("success");
-        reset();
+        // Sucesso silencioso no backend
       } else {
-        setSubmitStatus("error");
+        console.warn("Aviso: Falha ao salvar no banco de dados. O lead não foi registrado na planilha.");
       }
+      
     } catch (error) {
       console.error("Error submitting lead:", error);
-      setSubmitStatus("error");
     } finally {
       setIsSubmitting(false);
+      setSubmitStatus("success");
+      reset();
+      
+      // Fallback: Se a nova janela foi bloqueada pelo navegador, força a navegação
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
+         window.top ? window.top.location.href = waUrl : window.location.href = waUrl;
+      }
     }
   };
 
@@ -459,7 +472,7 @@ export default function App() {
                   ) : (
                     <>
                       <Phone className="w-5 h-5" />
-                      Falar com o Corretor Agora
+                      Falar com o proprietário
                     </>
                   )}
                 </button>
@@ -472,7 +485,7 @@ export default function App() {
                       exit={{ opacity: 0, height: 0 }}
                       className="p-4 bg-green-50 text-green-700 rounded-xl text-sm font-medium text-center"
                     >
-                      Dados enviados! Entraremos em contato em breve.
+                      Tudo certo! Você está sendo redirecionado para o WhatsApp...
                     </motion.div>
                   )}
                   {submitStatus === "error" && (
@@ -480,26 +493,13 @@ export default function App() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="p-4 bg-red-50 text-red-700 rounded-xl text-sm font-medium text-center"
+                      className="p-4 bg-red-50 text-red-700 rounded-xl text-sm font-medium text-center shadow-lg border border-red-100"
                     >
                       Ocorreu um erro. Tente novamente ou use o WhatsApp.
                     </motion.div>
                   )}
                 </AnimatePresence>
               </form>
-
-              <div className="mt-8 pt-8 border-t border-ink/5 text-center">
-                <p className="text-sm text-ink/40 mb-4 uppercase tracking-widest font-semibold">Ou se preferir</p>
-                <a 
-                  href="https://wa.me/5519999999999" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-green-600 font-bold hover:text-green-700 transition-colors"
-                >
-                  <MessageSquare className="w-5 h-5" />
-                  Chamar no WhatsApp agora
-                </a>
-              </div>
             </div>
           </div>
         </div>
